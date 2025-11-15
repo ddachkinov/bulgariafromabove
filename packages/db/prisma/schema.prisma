@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  password  String?  // Null for OAuth users
+  avatarId  String?
+  provider  String   @default("email") // 'email' or 'google'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  games    Game[]
+  scores   Score[]
+  feedback Feedback[]
+
+  @@index([email])
+  @@index([username])
+}
+
+// Photo model
+model Photo {
+  id           String   @id @default(cuid())
+  url          String
+  thumbnailUrl String
+  latitude     Float
+  longitude    Float
+  city         String?
+  region       String?
+  category     String?
+  difficulty   Int      @default(1) // 1-5
+  approved     Boolean  @default(false)
+  uploadedBy   String?  // Admin user ID
+  createdAt    DateTime @default(now())
+
+  rounds Round[]
+
+  @@index([approved])
+  @@index([category])
+  @@index([difficulty])
+}
+
+// Game model
+model Game {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode        String    // 'classic' or '5-round'
+  status      String    @default("in_progress") // 'in_progress' or 'completed'
+  totalScore  Int       @default(0)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  rounds Round[]
+  scores Score[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([mode])
+}
+
+// Round model (individual guesses within a game)
+model Round {
+  id          String   @id @default(cuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  photoId     String
+  photo       Photo    @relation(fields: [photoId], references: [id])
+  roundNumber Int      // 1-5 for 5-round challenge
+  guessLat    Float?
+  guessLng    Float?
+  distance    Float?   // meters
+  timeSpent   Int?     // seconds
+  points      Int?
+  createdAt   DateTime @default(now())
+
+  @@index([gameId])
+  @@index([photoId])
+}
+
+// Score model (for leaderboard)
+model Score {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  mode        String   // 'classic' or '5-round'
+  totalScore  Int
+  avgDistance Float?
+  createdAt   DateTime @default(now())
+
+  @@index([mode, totalScore(sort: Desc)])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+// Feedback model
+model Feedback {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject    String
+  message    String
+  deviceInfo String?  // JSON string
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
