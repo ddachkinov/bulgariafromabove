@@ -285,15 +285,20 @@ For issues and questions:
 
 ## Roadmap
 
-### MVP (Current Phase)
+### MVP ✅ COMPLETED
 - [x] Project setup and architecture
 - [x] Backend API implementation
 - [x] Database schema and migrations
-- [ ] Web app UI and gameplay
-- [ ] Authentication system
-- [ ] Leaderboard
-- [ ] User profiles
-- [ ] Admin panel
+- [x] Web app UI and gameplay
+- [x] Authentication system (Email/Password)
+- [x] Leaderboard (Daily, Weekly, All-time)
+- [x] User profiles with statistics
+- [x] Admin panel for photo management
+- [x] Photo upload with EXIF extraction
+- [x] DigitalOcean Spaces integration
+- [x] Feedback system
+- [x] Social sharing
+- [x] Complete game flow (Classic + 5-Round)
 
 ### Post-MVP
 - [ ] User photo uploads
