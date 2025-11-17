@@ -8,10 +8,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+// Validate redirect URL to prevent open redirect vulnerabilities
+function validateRedirect(url: string | null): string {
+  if (!url) return '/';
+
+  // Only allow relative paths
+  if (!url.startsWith('/')) return '/';
+
+  // Prevent protocol-relative URLs (//evil.com)
+  if (url.startsWith('//')) return '/';
+
+  // Prevent javascript: and data: URLs
+  if (url.toLowerCase().match(/^(javascript|data|vbscript):/)) return '/';
+
+  return url;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = validateRedirect(searchParams.get('redirect'));
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

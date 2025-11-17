@@ -157,6 +157,14 @@ export async function submitGuess(
       });
     }
 
+    // Anti-cheat: Check if round already has a guess (prevent double submission)
+    if (currentRound.guessLat !== null || currentRound.guessLng !== null) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Guess already submitted for this round',
+      });
+    }
+
     // Anti-cheat: Validate guess time
     if (!isValidGuessTime(guess.timeSpent)) {
       return reply.status(400).send({
@@ -175,27 +183,27 @@ export async function submitGuess(
       getTimeLimit(game.mode as 'classic' | '5-round')
     );
 
-    // Update round with guess data
-    await db.round.update({
-      where: { id: currentRound.id },
-      data: {
-        guessLat: guess.guessLat,
-        guessLng: guess.guessLng,
-        distance,
-        timeSpent: guess.timeSpent,
-        points: score,
-      },
-    });
-
-    // Update game total score
-    await db.game.update({
-      where: { id: game.id },
-      data: {
-        totalScore: {
-          increment: score,
+    // Update round and game score in a transaction (prevent race conditions)
+    await db.$transaction([
+      db.round.update({
+        where: { id: currentRound.id },
+        data: {
+          guessLat: guess.guessLat,
+          guessLng: guess.guessLng,
+          distance,
+          timeSpent: guess.timeSpent,
+          points: score,
         },
-      },
-    });
+      }),
+      db.game.update({
+        where: { id: game.id },
+        data: {
+          totalScore: {
+            increment: score,
+          },
+        },
+      }),
+    ]);
 
     // Check if game should continue
     const maxRounds = game.mode === '5-round' ? 5 : 1;
@@ -203,8 +211,8 @@ export async function submitGuess(
 
     let nextPhoto = null;
     if (shouldContinue) {
-      // Get next photo
-      const photo = await getRandomPhoto();
+      // Get next photo (excluding photos already used in this game)
+      const photo = await getRandomPhoto(game.id);
 
       if (photo) {
         // Create next round
@@ -339,10 +347,23 @@ export async function completeGame(
 }
 
 // Helper: Get random photo (excluding recently used)
-async function getRandomPhoto() {
-  // Get approved photos
+async function getRandomPhoto(excludeGameId?: string) {
+  // Get photo IDs already used in this game
+  let usedPhotoIds: string[] = [];
+  if (excludeGameId) {
+    const usedRounds = await db.round.findMany({
+      where: { gameId: excludeGameId },
+      select: { photoId: true },
+    });
+    usedPhotoIds = usedRounds.map((r) => r.photoId);
+  }
+
+  // Get approved photos excluding those already used in this game
   const photos = await db.photo.findMany({
-    where: { approved: true },
+    where: {
+      approved: true,
+      id: { notIn: usedPhotoIds },
+    },
   });
 
   if (photos.length === 0) {

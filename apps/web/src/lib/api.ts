@@ -45,10 +45,24 @@ class ApiClient {
       headers,
     });
 
-    const data = await response.json();
+    // Check content type before parsing
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType?.includes('application/json');
+
+    let data: any;
+    try {
+      if (isJson) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { error: text || 'Invalid response format' };
+      }
+    } catch (parseError) {
+      throw new Error('Failed to parse server response');
+    }
 
     if (!response.ok) {
-      throw new Error(data.error || 'An error occurred');
+      throw new Error(data.error || `Request failed with status ${response.status}`);
     }
 
     return data;

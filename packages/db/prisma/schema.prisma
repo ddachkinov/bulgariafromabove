@@ -18,6 +18,7 @@ model User {
   password  String?  // Null for OAuth users
   avatarId  String?
   provider  String   @default("email") // 'email' or 'google'
+  isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

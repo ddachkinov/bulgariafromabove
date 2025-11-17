@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { formatDistance, formatScore } from '@bulgaria/utils';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,31 @@ interface RoundResultProps {
   onContinue: () => void;
 }
 
+// Component to auto-fit map bounds using react-leaflet's useMap hook
+function AutoFitBounds({
+  actualLat,
+  actualLng,
+  guessLat,
+  guessLng,
+}: {
+  actualLat: number;
+  actualLng: number;
+  guessLat: number;
+  guessLng: number;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    const bounds = L.latLngBounds(
+      [actualLat, actualLng],
+      [guessLat, guessLng]
+    );
+    map.fitBounds(bounds, { padding: [50, 50] });
+  }, [map, actualLat, actualLng, guessLat, guessLng]);
+
+  return null;
+}
+
 // Custom icons for actual vs guess
 const actualIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -45,21 +70,8 @@ const guessIcon = new L.Icon({
 });
 
 export function RoundResult({ result, onContinue }: RoundResultProps) {
-  const mapRef = useRef<L.Map>(null);
-
   const { actualLat, actualLng, guessLat, guessLng, distance, points, timeSpent } =
     result.result;
-
-  // Calculate bounds to fit both markers
-  useEffect(() => {
-    if (mapRef.current) {
-      const bounds = L.latLngBounds(
-        [actualLat, actualLng],
-        [guessLat, guessLng]
-      );
-      mapRef.current.fitBounds(bounds, { padding: [50, 50] });
-    }
-  }, [actualLat, actualLng, guessLat, guessLng]);
 
   const getAccuracyMessage = (distance: number) => {
     if (distance < 100) return { text: 'Perfect!', color: 'text-green-600' };
@@ -80,11 +92,16 @@ export function RoundResult({ result, onContinue }: RoundResultProps) {
           center={[actualLat, actualLng]}
           zoom={7}
           className="w-full h-[50vh] lg:h-full"
-          ref={mapRef}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <AutoFitBounds
+            actualLat={actualLat}
+            actualLng={actualLng}
+            guessLat={guessLat}
+            guessLng={guessLng}
           />
 
           {/* Actual location marker (green) */}

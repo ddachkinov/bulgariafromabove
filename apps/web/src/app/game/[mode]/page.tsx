@@ -21,7 +21,7 @@ export default function GamePage() {
   const [roundResult, setRoundResult] = useState<any>(null);
   const [gameResult, setGameResult] = useState<any>(null);
 
-  const { gameId, currentPhoto, timeLimit, setGame, reset } = useGameStore();
+  const { gameId, currentPhoto, timeLimit, setGame, updateRound, reset } = useGameStore();
 
   // Initialize game
   useEffect(() => {
@@ -76,6 +76,12 @@ export default function GamePage() {
 
   const handleContinue = () => {
     if (roundResult?.hasNextRound && roundResult?.nextPhoto) {
+      // Update store with next round data
+      updateRound({
+        roundNumber: roundResult.roundNumber,
+        photo: roundResult.nextPhoto,
+        score: roundResult.result.points,
+      });
       // Move to next round
       setRoundResult(null);
       setPhotoStartTime(Date.now());

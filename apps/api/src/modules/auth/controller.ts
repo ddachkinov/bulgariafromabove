@@ -5,6 +5,7 @@ import { CreateUserSchema } from '@bulgaria/types';
 import { z } from 'zod';
 
 const SALT_ROUNDS = 10;
+const JWT_EXPIRATION = '7d'; // 7 days
 
 // Register handler
 export async function register(request: FastifyRequest, reply: FastifyReply) {
@@ -50,11 +51,14 @@ export async function register(request: FastifyRequest, reply: FastifyReply) {
     });
 
     // Generate JWT token
-    const token = request.server.jwt.sign({
-      id: user.id,
-      email: user.email,
-      username: user.username,
-    });
+    const token = request.server.jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+      },
+      { expiresIn: JWT_EXPIRATION }
+    );
 
     return reply.status(201).send({
       success: true,
@@ -109,11 +113,14 @@ export async function login(request: FastifyRequest, reply: FastifyReply) {
     }
 
     // Generate JWT token
-    const token = request.server.jwt.sign({
-      id: user.id,
-      email: user.email,
-      username: user.username,
-    });
+    const token = request.server.jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+      },
+      { expiresIn: JWT_EXPIRATION }
+    );
 
     return reply.send({
       success: true,

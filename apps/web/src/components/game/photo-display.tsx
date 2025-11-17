@@ -18,12 +18,14 @@ export function PhotoDisplay({
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
+    let timer: NodeJS.Timeout | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    timer = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
           setFadeOut(true);
-          setTimeout(() => {
-            clearInterval(timer);
+          timeoutId = setTimeout(() => {
             onTimeout();
           }, 500); // Wait for fade animation
           return 0;
@@ -32,7 +34,10 @@ export function PhotoDisplay({
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      if (timer) clearInterval(timer);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [onTimeout]);
 
   const progress = (timeRemaining / timeLimit) * 100;

@@ -3,6 +3,24 @@ import { db } from '@bulgaria/db';
 import { CreatePhotoSchema, UpdatePhotoSchema } from '@bulgaria/types';
 import { z } from 'zod';
 
+// Helper: Check if user is admin
+async function checkAdmin(userId: string, reply: FastifyReply): Promise<boolean> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { isAdmin: true },
+  });
+
+  if (!user || !user.isAdmin) {
+    reply.status(403).send({
+      success: false,
+      error: 'Admin access required',
+    });
+    return false;
+  }
+
+  return true;
+}
+
 // Get random photo (for game)
 export async function getRandomPhoto(
   request: FastifyRequest,
@@ -38,6 +56,10 @@ export async function uploadPhoto(
   reply: FastifyReply
 ) {
   try {
+    // Check admin access
+    const isAdmin = await checkAdmin(request.user!.id, reply);
+    if (!isAdmin) return;
+
     const body = CreatePhotoSchema.parse({
       ...request.body,
       uploadedBy: request.user!.id,
@@ -74,6 +96,10 @@ const GetPhotosQuerySchema = z.object({
 
 export async function getPhotos(request: FastifyRequest, reply: FastifyReply) {
   try {
+    // Check admin access
+    const isAdmin = await checkAdmin(request.user!.id, reply);
+    if (!isAdmin) return;
+
     const query = GetPhotosQuerySchema.parse(request.query);
 
     const where: any = {};
@@ -125,6 +151,10 @@ export async function updatePhoto(
   reply: FastifyReply
 ) {
   try {
+    // Check admin access
+    const isAdmin = await checkAdmin(request.user!.id, reply);
+    if (!isAdmin) return;
+
     const { id } = request.params as { id: string };
     const body = UpdatePhotoSchema.parse(request.body);
 
@@ -155,6 +185,10 @@ export async function deletePhoto(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  // Check admin access
+  const isAdmin = await checkAdmin(request.user!.id, reply);
+  if (!isAdmin) return;
+
   const { id } = request.params as { id: string };
 
   await db.photo.delete({
